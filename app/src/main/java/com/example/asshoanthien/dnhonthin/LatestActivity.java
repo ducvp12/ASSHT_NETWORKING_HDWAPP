@@ -11,54 +11,65 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.example.asshoanthien.dnhonthin.adapter.AdapterLatest;
-import com.example.asshoanthien.dnhonthin.model.modelLatest.Latestt;
-import com.example.asshoanthien.dnhonthin.retrofit.Hdwallpaper_Retrofit;
+import com.example.asshoanthien.dnhonthin.adapter.LatestAdapter;
+import com.example.asshoanthien.dnhonthin.model.latest;
+import com.example.asshoanthien.dnhonthin.model.modelex.Photo;
 import com.google.android.material.navigation.NavigationView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
 public class LatestActivity extends AppCompatActivity implements  NavigationView.OnNavigationItemSelectedListener {
-
+int page=1;
+int per_page=10;
     private RecyclerView mRvCate;
-     List<Latestt> modelLatests;
+     List<Photo> modelLatests;
     private AdapterLatest adapterLatest;
+    SwipeRefreshLayout f5;
+
+    private RecyclerView.Adapter mAdapter;
+    private RecyclerView.LayoutManager layoutManager;
+    List<latest> latestList;
+    LatestAdapter latestAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_latest);
-        mRvCate=findViewById(R.id.rvlatests2);
-        modelLatests=new ArrayList<>();
-        LinearLayoutManager linearLayoutManager=new LinearLayoutManager(this);
-        adapterLatest = new AdapterLatest(modelLatests,LatestActivity.this);
-        mRvCate.setAdapter(adapterLatest);
-        mRvCate.setLayoutManager((new GridLayoutManager(this, 2)));
 
-        Hdwallpaper_Retrofit.getInstance().getSourceUrl().enqueue(new Callback<List<Latestt>>() {
-            @Override
-            public void onResponse(Call<List<Latestt>> call, Response<List<Latestt>> response) {
-                Log.e("code", "" + response.code());
-                if (response.code() == 200) {
-                    if (response.body() == null) return;
-                    modelLatests.addAll(response.body());
-                    adapterLatest.notifyDataSetChanged();
- //                   Log.e("abcde", "onResponse: " + response.body().get(0).getEmbedded().getWpFeaturedmedia().get(0).getMediaDetails().getSizes().getMediumLarge().getSourceUrl());
-                }
-            }
-            // ok
-            @Override
-            public void onFailure(Call<List<Latestt>> call, Throwable t) {
 
-            }
-        });
+        getData();
+//        f5.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+//            @Override
+//            public void onRefresh() {
+//                //lay du lieu
+//                page=1;
+//                modelLatests.clear();
+//                getData(page,per_page);
+//            }
+//        });
+//
+//        mRvCate.addOnScrollListener(new EndlessRecyclerViewScrollListener(linearLayoutManager) {
+//            @Override
+//            public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
+//                page=page+1;
+//                getData(page,per_page);
+//            }
+//        });
+
 
 //
 //        for (int i = 0; i < 40; i++) {
@@ -84,6 +95,87 @@ public class LatestActivity extends AppCompatActivity implements  NavigationView
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
     }
+
+    private void getData() {
+
+
+
+        RequestQueue requestQueue = Volley.newRequestQueue(LatestActivity.this);
+        String url = "https://www.flickr.com/services/rest/?method=flickr.favorites.getList&api_key=24bf810575bc5bfbe2aef1ed6cd4517b&user_id=63356846%40N04&format=json&nojsoncallback=1&extras=views,%20media,%20path_alias,%20url_sq,%20url_t,%20url_s,%20url_q,%20url_m,%20url_n,%20url_z,%20url_c,%20url_l,%20url_o&per_page=10&page=1";
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                new com.android.volley.Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d("ketqua", response);
+                        try {
+
+                            ArrayList<latest> latests = new ArrayList<>();
+
+                            JSONObject jsonObject = new JSONObject(response);
+
+                            JSONObject jsonObjectP = jsonObject.getJSONObject("photos");
+                            Log.d("photo", jsonObjectP.toString());
+
+
+                            JSONArray jsonArrayS = jsonObjectP.getJSONArray("photo");
+                            Log.d("photo2", jsonArrayS.toString());
+
+                            for(int i=0 ; i<jsonArrayS.length();i++) {
+                                JSONObject jsonObjectQ = jsonArrayS.getJSONObject(i);
+                                Log.d("ddddd", jsonObjectQ.toString());
+
+//                                    JSONObject jsonObjectA = jsonObjectQ.getJSONObject("url_sq");
+//                                    Log.d("mmmmmm", jsonObjectQ.toString());
+
+                                String url = jsonObjectQ.getString("url_m");
+                                String a = jsonObjectQ.getString("title");
+                                Log.d("kkkkk", url);
+                                latests.add(new latest(url,a));
+
+
+
+
+                            }
+//
+//
+//
+//
+
+
+//                                    }
+                            mAdapter = new LatestAdapter(LatestActivity.this,latests);
+                            mRvCate.setHasFixedSize(true);
+                            //mGridViewLatest.setLayoutManager(new GridLayoutManager(getActivity(), 2));
+                            layoutManager = new GridLayoutManager(LatestActivity.this,2);
+                            mRvCate.setLayoutManager(layoutManager);
+                            mRvCate.setAdapter(mAdapter);
+
+
+//
+//                                }
+
+
+
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+
+                    }
+                });
+        requestQueue.add(stringRequest);
+
+
+
+
+    }
+
+
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
